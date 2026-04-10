@@ -1,0 +1,126 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields: uid, email, displayName
+    //
+    // Collection: patient
+    // Fields: name, age, medicalConditions, emergencyContact, caregiverUid
+    //
+    // Collection: meal_times
+    // Fields: breakfast, lunch, dinner, caregiverUid
+    //
+    // Collection: medicines
+    // Fields: name, dosage, slot, foodInstruction, notes, calculatedTime, caregiverUid
+    //
+    // Collection: logs
+    // Fields: slot, status, timestamp, foodInstruction, medicineName, caregiverUid
+    //
+    // Collection: device_status
+    // Fields: isOnline, lastSeen, caregiverUid
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if the user is the caregiver for the document
+    function isCaregiver(data) {
+      return isAuthenticated() && (data == null || data.caregiverUid == request.auth.uid);
+    }
+
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(data, allowedFields) {
+      return data.keys().hasOnly(allowedFields);
+    }
+
+    function isValidString(val, min, max) {
+      return val is string && val.size() >= min && val.size() <= max;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return hasRequiredFields(data, ['uid', 'email']) &&
+             data.uid == request.auth.uid;
+    }
+
+    function isValidPatient(data) {
+      return hasRequiredFields(data, ['name', 'caregiverUid']) &&
+             data.caregiverUid == request.auth.uid;
+    }
+
+    function isValidMealTime(data) {
+      return hasRequiredFields(data, ['breakfast', 'lunch', 'dinner', 'caregiverUid']) &&
+             data.caregiverUid == request.auth.uid;
+    }
+
+    function isValidMedicine(data) {
+      return hasRequiredFields(data, ['name', 'slot', 'food_instruction', 'status', 'caregiverUid']) &&
+             data.caregiverUid == request.auth.uid;
+    }
+
+    function isValidLog(data) {
+      return hasRequiredFields(data, ['slot', 'status', 'timestamp', 'caregiverUid']) &&
+             data.caregiverUid == request.auth.uid;
+    }
+
+    function isValidDeviceStatus(data) {
+      return hasRequiredFields(data, ['caregiverUid']) &&
+             data.caregiverUid == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && isValidUser(request.resource.data);
+    }
+
+    match /patient/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && isValidPatient(request.resource.data);
+    }
+
+    match /meal_times/{uid} {
+      allow read: if true; // Allow ESP32 to fetch meal times
+      allow create, update: if isOwner(uid) && isValidMealTime(request.resource.data);
+    }
+
+    match /medicines/{medicineId} {
+      allow read: if true; // Allow ESP32 to fetch medicines
+      allow create: if isAuthenticated() && isValidMedicine(request.resource.data);
+      allow update: if isAuthenticated() && (resource == null || resource.data.caregiverUid == request.auth.uid) && isValidMedicine(request.resource.data);
+      allow delete: if isAuthenticated() && (resource == null || resource.data.caregiverUid == request.auth.uid);
+    }
+
+    match /logs/{logId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.caregiverUid == request.auth.uid);
+      allow create: if true; // Allow ESP32 to submit logs
+      allow update: if isAuthenticated() && (resource == null || resource.data.caregiverUid == request.auth.uid) && isValidLog(request.resource.data);
+      allow delete: if isAuthenticated() && (resource == null || resource.data.caregiverUid == request.auth.uid);
+    }
+
+    match /device_status/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if true; // Allow ESP32 to update status
+    }
+  }
+}

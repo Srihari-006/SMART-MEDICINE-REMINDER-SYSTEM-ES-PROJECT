@@ -1,0 +1,5 @@
+{
+  "name": "Smart Medicine Reminder System",
+  "description": "A comprehensive caregiver-patient medicine management system with real-time ESP32 integration and smart scheduling.",
+  "requestFramePermissions": []
+}

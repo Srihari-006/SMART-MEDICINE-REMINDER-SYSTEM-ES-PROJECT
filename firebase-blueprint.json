@@ -1,0 +1,106 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "Caregiver profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "patient": {
+      "title": "Patient",
+      "description": "Patient profile",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "age": { "type": "number" },
+        "medicalConditions": { "type": "string" },
+        "emergencyContact": { "type": "string" },
+        "caregiverUid": { "type": "string" }
+      },
+      "required": ["name", "caregiverUid"]
+    },
+    "meal_times": {
+      "title": "Meal Times",
+      "description": "Configurable meal times",
+      "type": "object",
+      "properties": {
+        "breakfast": { "type": "string", "description": "HH:mm format" },
+        "lunch": { "type": "string", "description": "HH:mm format" },
+        "dinner": { "type": "string", "description": "HH:mm format" },
+        "caregiverUid": { "type": "string" }
+      },
+      "required": ["breakfast", "lunch", "dinner", "caregiverUid"]
+    },
+    "medicine": {
+      "title": "Medicine",
+      "description": "Medicine schedule",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "dosage": { "type": "string" },
+        "slot": { "type": "string", "enum": ["breakfast", "lunch", "dinner"] },
+        "food_instruction": { "type": "string", "enum": ["before", "after"] },
+        "notes": { "type": "string" },
+        "calculatedTime": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "pending"] },
+        "caregiverUid": { "type": "string" }
+      },
+      "required": ["name", "slot", "food_instruction", "status", "caregiverUid"]
+    },
+    "log": {
+      "title": "Log",
+      "description": "Medicine intake logs",
+      "type": "object",
+      "properties": {
+        "slot": { "type": "string" },
+        "status": { "type": "string", "enum": ["taken", "missed"] },
+        "timestamp": { "type": "string" },
+        "caregiverUid": { "type": "string" }
+      },
+      "required": ["slot", "status", "timestamp", "caregiverUid"]
+    },
+    "device_status": {
+      "title": "Device Status",
+      "description": "ESP32 heartbeat and status",
+      "type": "object",
+      "properties": {
+        "isOnline": { "type": "boolean" },
+        "lastSeen": { "type": "string" },
+        "sync": { "type": "boolean" },
+        "caregiverUid": { "type": "string" }
+      },
+      "required": ["isOnline", "lastSeen", "sync", "caregiverUid"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "user",
+      "description": "Caregiver user records"
+    },
+    "/patient/{uid}": {
+      "schema": "patient",
+      "description": "Patient profile linked to caregiver"
+    },
+    "/meal_times/{uid}": {
+      "schema": "meal_times",
+      "description": "Meal times for the caregiver's patient"
+    },
+    "/medicines/{medicineId}": {
+      "schema": "medicine",
+      "description": "Medicine schedule records"
+    },
+    "/logs/{logId}": {
+      "schema": "log",
+      "description": "Intake history logs"
+    },
+    "/device_status/{uid}": {
+      "schema": "device_status",
+      "description": "ESP32 status for the caregiver"
+    }
+  }
+}
